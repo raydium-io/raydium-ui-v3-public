@@ -41,6 +41,7 @@ import DisclaimerModal from './components/DisclaimerModal'
 import AppVersion from './AppVersion'
 import TagNewIcon from '@/icons/misc/TagNewIcon'
 import { useReferrerQuery } from '@/features/Launchpad/utils'
+import { TorqueButton } from '@/features/Torque'
 
 export interface NavSettings {
   // colorTheme: 'dark' | 'light'
@@ -136,6 +137,7 @@ function AppNavLayout({
 
         {/* wallet button */}
         <Flex gap={[0.5, 2]} align="center">
+          <TorqueButton />
           <PriorityButton />
           <SettingsMenu />
           {/* <EVMWallet />  don't need currently yet*/}
