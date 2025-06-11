@@ -2,6 +2,7 @@ import { ChangeEvent, DragEvent, useState, useCallback, useRef, useEffect } from
 import { Button, Flex, Text, Image } from '@chakra-ui/react'
 import { colors } from '@/theme/cssVariables'
 import UploadIcon from '@/icons/misc/UploadIcon'
+import { isAndroid } from 'react-device-detect'
 
 const ImageUploader = ({
   onImageUpload,
@@ -179,7 +180,7 @@ const ImageUploader = ({
 
   useEffect(() => {
     return () => {
-      if (previewUrl) {
+      if (previewUrl && previewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(previewUrl)
       }
     }
@@ -229,7 +230,7 @@ const ImageUploader = ({
         ref={fileInputRef}
         onChange={handleFileInputChange}
         style={{ display: 'none' }}
-        accept={acceptedFileTypes.join(',')}
+        accept={isAndroid ? `${acceptedFileTypes.join(',')},.zip` : acceptedFileTypes.join(',')}
         multiple={maxFiles > 1}
       />
     </Flex>

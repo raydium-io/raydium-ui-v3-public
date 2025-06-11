@@ -8,15 +8,11 @@ import Tooltip from '@/components/Tooltip'
 import ClockIcon from '@/icons/misc/Clock'
 import GiftIcon from '@/icons/misc/Gift'
 import ShareIcon from '@/icons/misc/ShareIcon'
-import { displayNumber } from '../utils'
+import { displayNumber, twitterShareUrl } from '../utils'
+import { useWallet } from '@solana/wallet-adapter-react'
 interface TorqueOfferCardProps extends TorqueCampaign {
   claimOffer: (offerId: string) => void
-}
-
-const twitterShareUrl = (amount: string) => {
-  const safeAmount = encodeURIComponent(amount)
-  // TODO: Need to add the final twitter copy here
-  return `https://twitter.com/intent/tweet?text=Thanks%20%40RaydiumProtocol%20for%20my%20${safeAmount},%20see%20if%20you%20are%20eligible%20for%20a%20reward%20too%20https%3A//raydium.io/launchpad/`
+  handleOpenClaimModal: (amount: string) => void
 }
 
 export default function TorqueOfferCard({
@@ -30,12 +26,14 @@ export default function TorqueOfferCard({
   maxParticipants,
   startTime,
   endTime,
-  status
+  status,
+  handleOpenClaimModal
 }: TorqueOfferCardProps) {
   // State
   const [claiming, setClaiming] = useState<boolean>(false)
   const [showAdditionalOffers, setShowAdditionalOffers] = useState<boolean>(false)
   const explorerUrl = useAppStore((s) => s.explorerUrl)
+  const { wallet } = useWallet()
 
   const activeOffer = useMemo(() => {
     // A user should not be eligible for multiple active offers per campaign
@@ -54,6 +52,8 @@ export default function TorqueOfferCard({
     if (!activeOffer?.id) {
       return
     }
+
+    handleOpenClaimModal(`${activeOffer.rewardPerUser} ${rewardDenomination}`)
 
     setClaiming(true)
     await claimOffer(activeOffer.id)
@@ -180,7 +180,10 @@ export default function TorqueOfferCard({
 
           {pendingOrClaimedOffer?.rewardPerUser ? (
             <Link
-              href={twitterShareUrl(`${pendingOrClaimedOffer.rewardPerUser} ${rewardDenomination}`)}
+              href={twitterShareUrl(
+                `${pendingOrClaimedOffer.rewardPerUser} ${rewardDenomination}`,
+                wallet?.adapter.publicKey?.toString() ?? ''
+              )}
               target="_blank"
               rel="noopener noreferrer"
             >

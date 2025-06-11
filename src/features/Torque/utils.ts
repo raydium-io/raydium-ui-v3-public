@@ -168,3 +168,8 @@ export function formatBadDateString(date: string, makeUtc = false): string {
 
   return makeUtc ? baseDate + 'T00:00:00Z' : baseDate
 }
+
+export const twitterShareUrl = (amount: string, wallet: string) => {
+  const safeAmount = encodeURIComponent(amount)
+  return `https://twitter.com/intent/post?text=Just%20claimed%20${safeAmount}%20for%20trading%20on%20LaunchLab%20%40RaydiumProtocol%20%F0%9F%92%AA%0A%0ABeen%20in%20the%20trenches%3F%20You%20may%20have%20rewards%20waiting.%20Trade%20using%20my%20link%20for%20more%20chances%20to%20win%20RAY%20%F0%9F%91%89%20https%3A%2F%2Fraydium.io%2Flaunchpad%2F%3Flreferrer%3D${wallet}`
+}

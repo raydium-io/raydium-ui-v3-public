@@ -1,11 +1,29 @@
-import { Heading, HStack, Stack, Text, VStack } from '@chakra-ui/react'
-import { useMemo } from 'react'
+import {
+  Button,
+  Heading,
+  HStack,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalOverlay,
+  Modal,
+  Stack,
+  Text,
+  VStack,
+  ModalHeader,
+  useColorMode
+} from '@chakra-ui/react'
+import { useMemo, useState } from 'react'
 import TorqueOfferCard, { TorqueOfferCardSkeleton } from './TorqueOfferCard'
 import { colors } from '@/theme/cssVariables'
 import { TorqueCampaign } from '../types'
 import HistoryIcon from '@/icons/misc/History'
 import GiftIcon from '@/icons/misc/Gift'
 import { useWallet } from '@solana/wallet-adapter-react'
+import Image from 'next/image'
+import { genericConfetti } from './TorqueConfetti'
+import { twitterShareUrl } from '../utils'
+
 interface TorqueClaimRewardsProps {
   claimOffer: (offerId: string) => void
   campaigns: TorqueCampaign[]
@@ -15,6 +33,11 @@ interface TorqueClaimRewardsProps {
 
 export default function TorqueClaimRewards({ claimOffer, campaigns, loading, error }: TorqueClaimRewardsProps) {
   const { wallet } = useWallet()
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState<boolean>(false)
+  const [shareAmount, setShareAmount] = useState<string>('')
+
+  const { colorMode } = useColorMode()
+  const isLight = colorMode === 'light'
 
   const activeCampaigns = useMemo(() => {
     return campaigns.filter((campaign) => campaign.offers.some((offer) => offer.status === 'ACTIVE'))
@@ -36,6 +59,12 @@ export default function TorqueClaimRewards({ claimOffer, campaigns, loading, err
         return b.endTime.diff(a.endTime)
       })
   }, [campaigns])
+
+  const handleOpenClaimModal = (amount: string) => {
+    setShareAmount(amount)
+    setIsClaimModalOpen(true)
+    genericConfetti()
+  }
 
   if (loading) {
     return (
@@ -69,49 +98,106 @@ export default function TorqueClaimRewards({ claimOffer, campaigns, loading, err
   }
 
   return (
-    <VStack gap={6} p={0} w="full">
-      <Section title="Ready to Claim" icon={<GiftIcon />}>
-        {activeCampaigns.length > 0 ? (
-          activeCampaigns.map((campaign) => <TorqueOfferCard key={campaign.id} {...campaign} claimOffer={claimOffer} />)
-        ) : (
-          <Stack
-            w="full"
-            spacing={4}
-            p={3}
-            minH={24}
-            borderRadius="md"
-            bg={colors.backgroundDark}
-            opacity={0.7}
-            justify="center"
-            align="center"
-          >
-            <Text>{wallet?.adapter.publicKey ? "You don't have any available rewards." : 'Connect your wallet to view your rewards.'}</Text>
-          </Stack>
-        )}
-      </Section>
+    <>
+      <VStack gap={6} p={0} w="full">
+        <Section title="Ready to Claim" icon={<GiftIcon />}>
+          {activeCampaigns.length > 0 ? (
+            activeCampaigns.map((campaign) => (
+              <TorqueOfferCard key={campaign.id} {...campaign} claimOffer={claimOffer} handleOpenClaimModal={handleOpenClaimModal} />
+            ))
+          ) : (
+            <Stack
+              w="full"
+              spacing={4}
+              p={3}
+              minH={24}
+              borderRadius="md"
+              bg={colors.backgroundDark}
+              opacity={0.7}
+              justify="center"
+              align="center"
+            >
+              <Text>
+                {wallet?.adapter.publicKey ? "You don't have any available rewards." : 'Connect your wallet to view your rewards.'}
+              </Text>
+            </Stack>
+          )}
+        </Section>
 
-      <Section title="History" icon={<HistoryIcon />}>
-        {historicalCampaigns.length > 0 ? (
-          historicalCampaigns.map((campaign) => <TorqueOfferCard key={campaign.id} {...campaign} claimOffer={claimOffer} />)
-        ) : (
-          <Stack
-            w="full"
-            spacing={4}
-            p={3}
-            minH={24}
-            borderRadius="md"
-            bg={colors.backgroundDark}
-            opacity={0.7}
-            justify="center"
-            align="center"
-          >
-            <Text>
-              {wallet?.adapter.publicKey ? 'Looks like there are no historical rewards.' : 'Connect your wallet to see historical rewards.'}
-            </Text>
-          </Stack>
-        )}
-      </Section>
-    </VStack>
+        <Section title="History" icon={<HistoryIcon />}>
+          {historicalCampaigns.length > 0 ? (
+            historicalCampaigns.map((campaign) => (
+              <TorqueOfferCard key={campaign.id} {...campaign} claimOffer={claimOffer} handleOpenClaimModal={handleOpenClaimModal} />
+            ))
+          ) : (
+            <Stack
+              w="full"
+              spacing={4}
+              p={3}
+              minH={24}
+              borderRadius="md"
+              bg={colors.backgroundDark}
+              opacity={0.7}
+              justify="center"
+              align="center"
+            >
+              <Text>
+                {wallet?.adapter.publicKey
+                  ? 'Looks like there are no historical rewards.'
+                  : 'Connect your wallet to see historical rewards.'}
+              </Text>
+            </Stack>
+          )}
+        </Section>
+      </VStack>
+      {isClaimModalOpen && (
+        <Modal
+          isOpen={isClaimModalOpen}
+          onClose={() => {
+            setIsClaimModalOpen(false)
+            setShareAmount('')
+          }}
+        >
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Hold Tight — Reward On The Way</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <Stack justifyContent={'center'} alignItems={'center'} gap={4}>
+                <Image alt="Share Reward" src="/images/reward-icon.jpg" width={300} height={300} style={{ borderRadius: '8px' }} />
+                <Text textAlign={'center'}>
+                  Your reward&apos;s en route. While the system does it&apos;s magic, share your referral link on X for more chances to earn
+                  rewards!
+                </Text>
+                <HStack w="full" gap={2} justifyContent={'center'}>
+                  <Button
+                    size="md"
+                    w="full"
+                    flex={2}
+                    background={
+                      isLight
+                        ? 'linear-gradient(245.22deg, #DA2EEF 7.97%, #2B6AFF 49.17%, #39D0D8 92.1%)'
+                        : 'linear-gradient(245.22deg, #FF2FC8 7.97%, #FFB12B 49.17%, #D3D839 92.1%)'
+                    }
+                    _hover={{
+                      background: isLight
+                        ? 'linear-gradient(245.22deg, #DA2EEF 7.97%, #2B6AFF 49.17%, #39D0D8 92.1%)'
+                        : 'linear-gradient(245.22deg, #FF2FC8 7.97%, #FFB12B 49.17%, #D3D839 92.1%)'
+                    }}
+                    onClick={() => {
+                      const url = twitterShareUrl(shareAmount, wallet?.adapter.publicKey?.toString() ?? '')
+                      window.open(url, '_blank')
+                    }}
+                  >
+                    Share to Earn
+                  </Button>
+                </HStack>
+              </Stack>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
+    </>
   )
 }
 
