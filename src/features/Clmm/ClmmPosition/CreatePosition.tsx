@@ -111,8 +111,8 @@ export default function CreatePosition() {
 
   const birdeyePoolPrice = hasBirdPrice
     ? new Decimal(birdeyePrice[currentPool!.mintA.address || '']?.value ?? 0).div(
-        birdeyePrice[currentPool!.mintB.address || '']?.value ?? 1
-      )
+      birdeyePrice[currentPool!.mintB.address || '']?.value ?? 1
+    )
     : new Decimal(0)
 
   const tickPriceRef = useRef<{ tickLower?: number; tickUpper?: number; priceLower?: string; priceUpper?: string; liquidity?: BN }>({})
@@ -649,7 +649,6 @@ export default function CreatePosition() {
               onAmountChange={handleAmountChange}
               token1Disable={disabledInput[0]}
               token2Disable={disabledInput[1]}
-              maxMultiplier={0.985}
             />
             <Box border={`1px solid ${colors.backgroundTransparent07}`} bg={colors.backgroundTransparent12} p="4" mt="4" borderRadius="xl">
               <HStack justifyContent="space-between">
