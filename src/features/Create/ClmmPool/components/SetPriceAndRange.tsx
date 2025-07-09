@@ -113,9 +113,9 @@ export default function SetPriceAndRange({
   const onlinePrice =
     tokenBase && tokenQuote && priceBase?.value && priceQuote?.value
       ? new Decimal((priceReverse ? priceBase.value : priceQuote.value) || 0)
-          .div((priceReverse ? priceQuote.value : priceBase.value) || 1)
-          .toDecimalPlaces((priceReverse ? tokenQuote.decimals : tokenBase.decimals) || 6)
-          .toString()
+        .div((priceReverse ? priceQuote.value : priceBase.value) || 1)
+        .toDecimalPlaces((priceReverse ? tokenQuote.decimals : tokenBase.decimals) || 6)
+        .toString()
       : '-- '
 
   const tickPriceRef = useRef<TickData>({})
@@ -136,6 +136,9 @@ export default function SetPriceAndRange({
       }
       switchRef.current = false
       const val = extractNumberOnly(propsVal)
+      if (val === currentPrice) {
+        return
+      }
       setCurrentPrice(val)
       debouncePriceChange({ price: val })
       handleLeftRangeBlur(new Decimal(val || 0).mul(0.5).toString())
@@ -283,12 +286,12 @@ export default function SetPriceAndRange({
               <Text>
                 {isFullRange
                   ? `${formatCurrency(new Decimal(fullRangeTickRef.current.priceLower || 0).toFixed(24), {
-                      maximumDecimalTrailingZeroes: 5,
-                      abbreviated: true
-                    })} - ${formatCurrency(new Decimal(fullRangeTickRef.current.priceUpper || 0).toFixed(24), {
-                      maximumDecimalTrailingZeroes: 5,
-                      abbreviated: true
-                    })}`
+                    maximumDecimalTrailingZeroes: 5,
+                    abbreviated: true
+                  })} - ${formatCurrency(new Decimal(fullRangeTickRef.current.priceUpper || 0).toFixed(24), {
+                    maximumDecimalTrailingZeroes: 5,
+                    abbreviated: true
+                  })}`
                   : `${formatToRawLocaleStr(priceRange[0])} - ${formatToRawLocaleStr(priceRange[1])}`}
               </Text>
               <Text>
