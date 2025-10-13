@@ -23,7 +23,7 @@ import {
   BitgetWalletAdapter
 } from '@solana/wallet-adapter-wallets'
 import { useAppStore, defaultNetWork, defaultEndpoint } from '../store/useAppStore'
-import { registerMoonGateWallet } from '@moongate/moongate-adapter'
+import { MoongateWalletAdapter2 } from '@moongate/moongate-adapter'
 import { TipLinkWalletAdapter } from '@tiplink/wallet-adapter'
 import { WalletConnectWalletAdapter } from '@walletconnect/solana-adapter'
 
@@ -40,31 +40,6 @@ const App: FC<PropsWithChildren<any>> = ({ children }) => {
   const wsNodeUrl = useAppStore((s) => s.wsNodeUrl)
   // const [endpoint] = useState<string>(defaultEndpoint)
   const [endpoint, setEndpoint] = useState<string>(rpcNodeUrl || defaultEndpoint)
-
-  registerMoonGateWallet({
-    authMode: 'Ethereum',
-    position: 'top-right'
-    // logoDataUri: 'OPTIONAL ADD IN-WALLET LOGO URL HERE',
-    // buttonLogoUri: 'ADD OPTIONAL LOGO FOR WIDGET BUTTON HERE'
-  })
-  registerMoonGateWallet({
-    authMode: 'Google',
-    position: 'top-right'
-    // logoDataUri: 'OPTIONAL ADD IN-WALLET LOGO URL HERE',
-    // buttonLogoUri: 'ADD OPTIONAL LOGO FOR WIDGET BUTTON HERE'
-  })
-  // registerMoonGateWallet({
-  //   authMode: 'Twitter',
-  //   position: 'top-right'
-  //   // logoDataUri: 'OPTIONAL ADD IN-WALLET LOGO URL HERE',
-  //   // buttonLogoUri: 'ADD OPTIONAL LOGO FOR WIDGET BUTTON HERE'
-  // })
-  registerMoonGateWallet({
-    authMode: 'Apple',
-    position: 'top-right'
-    // logoDataUri: 'OPTIONAL ADD IN-WALLET LOGO URL HERE',
-    // buttonLogoUri: 'ADD OPTIONAL LOGO FOR WIDGET BUTTON HERE'
-  })
 
   const _walletConnect = useMemo(() => {
     const connectWallet: WalletConnectWalletAdapter[] = []
@@ -91,6 +66,12 @@ const App: FC<PropsWithChildren<any>> = ({ children }) => {
 
   const wallets = useMemo(
     () => [
+      // MoonGate adapters at the top
+      new MoongateWalletAdapter2({ authMode: 'Google', position: 'top-right' }),
+      new MoongateWalletAdapter2({ authMode: 'Apple', position: 'top-right' }),
+      new MoongateWalletAdapter2({ authMode: 'Ethereum', position: 'top-right' }),
+
+      // Then all other wallets
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
       new SlopeWalletAdapter({ endpoint }),

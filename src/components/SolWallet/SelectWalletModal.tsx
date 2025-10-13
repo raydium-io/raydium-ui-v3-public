@@ -371,11 +371,22 @@ function NetworkItem({
 */
 function splitWallets(wallets: Wallet[]): { recommendedWallets: Wallet[]; notInstalledWallets: Wallet[] } {
   const supportedWallets = wallets.filter((w) => w.readyState !== WalletReadyState.Unsupported)
-  const recommendedWallets = supportedWallets.filter((w) => w.readyState !== WalletReadyState.NotDetected && w.adapter.name !== 'Sollet')
-  const notInstalledWallets = supportedWallets.filter((w) => w.readyState == WalletReadyState.NotDetected && w.adapter.name !== 'Phantom')
-  const solletWallet = supportedWallets.find((w) => w.adapter.name === 'Sollet')
+
+  // Separate MoonGate wallets to prioritize them (identified by their URL)
+  const moongateWallets = supportedWallets.filter((w) => w.adapter.url === 'https://moongate.one')
+  const nonMoongateWallets = supportedWallets.filter((w) => w.adapter.url !== 'https://moongate.one')
+
+  const recommendedWallets = nonMoongateWallets.filter((w) => w.readyState !== WalletReadyState.NotDetected && w.adapter.name !== 'Sollet')
+  const notInstalledWallets = nonMoongateWallets.filter((w) => w.readyState == WalletReadyState.NotDetected && w.adapter.name !== 'Phantom')
+  const solletWallet = nonMoongateWallets.find((w) => w.adapter.name === 'Sollet')
   solletWallet && notInstalledWallets.push(solletWallet)
-  const phantomWallet = supportedWallets.find((w) => w.adapter.name === 'Phantom')
+  const phantomWallet = nonMoongateWallets.find((w) => w.adapter.name === 'Phantom')
   phantomWallet && phantomWallet.readyState == WalletReadyState.NotDetected && recommendedWallets.unshift(phantomWallet)
+
+  // Put ALL MoonGate wallets at the absolute top, regardless of ready state
+  moongateWallets.reverse().forEach((wallet) => {
+    recommendedWallets.unshift(wallet)
+  })
+
   return { recommendedWallets, notInstalledWallets }
 }
