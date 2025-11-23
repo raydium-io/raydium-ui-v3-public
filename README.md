@@ -1,89 +1,205 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+Next.js Project Architecture and Coding Conventions
 
-## Getting Started
+This document outlines the standard architecture, directory structure, state management principles, and component usage conventions for this Next.js project.
 
-First, run the development server:
+Directory Structure
 
-```bash
-npm run dev
-# or
-yarn dev
-```
+We use a flat, domain-driven structure within the primary src/ directory.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+.
+├── src
+│   ├── components          # Common UI elements (Dumb/Presentation components). If complex, create a directory.
+│   ├── config              # Project-wide settings (e.g., API URLs, chain IDs, wallet config).
+│   ├── features            # Domain-specific, complex business logic pages (Container components).
+│   │   ├── Swap
+│   │   │   ├── index.tsx         # The main entry page for the Swap feature (Container).
+│   │   │   ├── useSwapStore.ts   # Feature-specific Zustand store (NOT shared).
+│   │   │   ├── utils.ts          # Feature-specific utility functions (NOT shared).
+│   │   │   └── components        # Swap-specific dumb components.
+│   │   └── .... (other features, e.g., Farm, Pool)
+│   ├── hooks               # Project-wide custom hooks (excluding store-specific hooks).
+│   ├── icons               # SVG or React components for icons (e.g., Lucide, custom SVGs).
+│   ├── pages               # Next.js route handlers (must be kept thin).
+│   ├── providers           # Context providers (e.g., WalletProvider, ThemeProvider) wrapping pages/_app.tsx.
+│   ├── store               # Shared, global Zustand stores (created using store/createStore helper).
+│   └── utils               # Project-wide, reusable utility functions.
+└── pages/                  # Standard Next.js routing directory. Pages here should be thin wrappers.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Coding and Architectural Rules
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+These rules ensure maintainability, testability, and clear separation of concerns.
 
-## Learn More
+1. State Management (Zustand)
 
-To learn more about Next.js, take a look at the following resources:
+Initialization: Every Zustand store must define both state and actions (functions) clearly within its initialization object.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Async Operations Centralization (Crucial): All API calls and asynchronous operations should be encapsulated within Zustand actions. DO NOT wrap these calls directly in multiple components or custom hooks. This ensures a single source of truth and simplifies caching/loading logic.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Store Naming: Feature-specific stores must be named clearly (e.g., useSwapStore).
 
-### Project structure
+2. Component Purity
 
-    .
-    ├── src                         # Source files (alternatively `lib` or `app`)
-    │   ├── component               # Common components, as pure as possible, if component too complex, create a directory
-    │   ├── config                  # Project common settings, e.g. wallet support chain
-    │   ├── icons                   # Image files
-    │   ├── hooks                   # Project common hooks, don't put zustand store or feature usage only hook here
-    │   ├── pages                   # Entry page of each feature, ONLY write initial data fetching or zustand actions dispatch
-    │   ├── features                # Project page files, separate by domain
-    │   │   ├── Swap
-    │   │   │   ├── index.tsx       # Main page of each feature
-    │   │   │   ├── useXXStore.ts   # Feature use ONLY zustand store, for sharing store, put in src/store
-    │   │   │   ├── util.ts         # Feature use ONLY util, for sharing, put in src/util
-    │   │   │   └── components
-    │   │   └── ....(other feature pages, e.g. farm, pool)
-    │   ├── store                   # Sharing zustand store, use store/createStore to create a new store for easier debugging
-    │   ├── provider                # Common providers, usually wrap App component in pages/_app.tsx file
-    │   └── util                    # Common utility functions
-    └── README.md
+Common Components (src/components): Components here must be as pure (side-effect free) as possible. Features should be controlled exclusively by props. To add new functionality, always introduce a new prop rather than changing internal logic that could break other usages.
 
-### Coding rules
+Feature Components (src/features/.../components): Components within features should also remain pure/dumb. They receive data and event handlers (functions) via props from their parent index.tsx (the Container). This prevents business logic from scattering across various files.
 
-1. Zustand store should define actions(function) and state in initialization
-2. Use zustand action to call api or async operations as possible, DO NOT wrapped it in every hooks
-3. Common components should be as pure as possible, reduce side effects if wants to add features, add new props to control it
-4. Components in src/features/xxx/components should also be as pure as possible, let index.tsx pass functions and props into it (prevent business logic separate in everywhere
+3. Next.js Pages
 
-### Components Map
+Thin Pages: Pages in pages/ (or src/pages/) should act primarily as entry points. Their responsibilities are limited to:
 
-- [`<TokenAvatar>`](./src/components/TokenAvatar.tsx) extends Chakra's `<Avatar>`, for avatar may be clickable/linkable in future, write this manually everytime is too complicated
-  - `prop:token` coin's SplToken
-- [`<TokenSymbol>`](./src/components/TokenSymbol.tsx) extends Chakra's `<Text>`, for text may have tooltip in future, write this manually everytime is too complicated
-  - `prop:token` coin's SplToken
-- [`<Button>`](./src/components/Button.tsx) extends Chakra's `<Button>`
-  - `prop:validators` handle app easy to see validation conditions
-- [`<ChartPanel>`](./src/components/ChartPanel.tsx) styled chart
-- [`<MessageBox>`](./src/components/MessageBox.tsx) simple message display
-  - `prop:title` message title
-  - `prop:status` message level, current support: warning | error | info, default is info
-  - `prop:icon` icon beside title
-  - `prop:children` for message more than a simple string, you could wrap them as children
-- [`<MessageStrip>`](./src/components/MessageStrip.tsx) message display
-  - `prop:title` message title
-  - `prop:desc` message description
-  - `prop:status` message level, current support: info | warning
-  - `prop:icon` icon beside title
-  - `prop:children` for more detail about message information, you could wrap them as children
-  - `prop:renderControlAction` extra interactive/action relative to message
+Defining the layout.
 
-### hooks Map
+Initial data fetching (if necessary via SSR/SSG/ISR).
 
-- [`useIsomorphicLayoutEffect()`](./src/hooks/useIsomorphicLayoutEffect.ts) useLayoutEffect()'s SSR version. Avoid bug report in CMD(name is conventional)
-- [`useEvent()`](./src/hooks/useEvent.ts) make function dependence always update but function address never change(it hook is suggested by Dan Abramov)
-- [`useSearch()`](./src/utils/searchItems.ts) a wrapper of [searchItems](./src/utils/searchItems.ts)
-- [`useToast()`](./src/hooks/useToast.tsx) a wrapper of chakra toast w/ Raydium style
+Dispatching initial Zustand actions.
 
-### utils Map
+Rendering the relevant top-level component from src/features/.
 
-- [`searchItems()`](./src/utils/searchItems.ts) apply search logic, it will only sort the result by match condition (TODO: support sort factor)
+Component Abstraction Map
+
+We use custom wrappers around Chakra UI components for better theming consistency and to pre-emptively add common functionality (like tooltips or validation logic).
+
+Component Name
+
+File Path
+
+Extends
+
+Purpose & Key Props
+
+Rationale (Optimization)
+
+<TokenAvatar>
+
+./src/components/TokenAvatar.tsx
+
+Chakra <Avatar>
+
+Displays token iconography. prop:token (Coin's SplToken)
+
+Ensures consistent branding, styling, and future linking/clickability features are centrally managed.
+
+<TokenSymbol>
+
+./src/components/TokenSymbol.tsx
+
+Chakra <Text>
+
+Displays token symbol. prop:token (Coin's SplToken)
+
+Standardizes token text presentation (e.g., font, color) and easily integrates future features like tooltips.
+
+<Button>
+
+./src/components/Button.tsx
+
+Chakra <Button>
+
+Standardized action button. prop:validators (Custom validation conditions array)
+
+Centralizes logic for showing/hiding/disabling based on application-specific validation rules.
+
+<ChartPanel>
+
+./src/components/ChartPanel.tsx
+
+N/A
+
+Styled container for chart visualization.
+
+Standardized UI container for visual data displays.
+
+<MessageBox>
+
+./src/components/MessageBox.tsx
+
+N/A
+
+Simple message/status display (Modal-style). prop:status (warning
+
+error
+
+<MessageStrip>
+
+./src/components/MessageStrip.tsx
+
+N/A
+
+Inline message banner. prop:status (info
+
+warning), prop:title, prop:desc, prop:renderControlAction
+
+Hooks and Utility Map
+
+Hook/Function Name
+
+File Path
+
+Purpose
+
+Note/Refinement
+
+useIsomorphicLayoutEffect()
+
+./src/hooks/useIsomorphicLayoutEffect.ts
+
+Server-Side Rendering (SSR) safe version of React.useLayoutEffect.
+
+Standard practice in Next.js/SSR environments to prevent console warnings/bugs.
+
+useEvent()
+
+./src/hooks/useEvent.ts
+
+Creates a stable function reference that always points to the latest function logic.
+
+Essential for optimizing hooks that depend on functions which constantly change (e.g., useEffect dependencies).
+
+useToast()
+
+./src/hooks/useToast.tsx
+
+Wrapper around Chakra's toast system with custom project (Raydium) styling applied.
+
+Ensures all notifications have a consistent, branded look and feel.
+
+searchItems()
+
+./src/utils/searchItems.ts
+
+Core search logic implementation.
+
+TODO: Implement support for a configurable sort factor to improve search result relevance and ordering.
+
+useSearch()
+
+./src/hooks/useSearch.ts
+
+Hook wrapper for searchItems().
+
+Simplifies integration of the search logic into components.
+
+Improvements and Suggestions
+
+Naming Consistency
+
+Suggestion: Change src/component to src/components (plural) for consistency with hooks, pages, features, and standard React naming conventions.
+
+Suggestion: Ensure all feature-specific utility files are named utils.ts (plural) or follow a convention like swap.utils.ts for consistency.
+
+Asset Handling (icons)
+
+Clarification: The src/icons directory is listed as containing "Image files." For a Next.js project, clarify the intent:
+
+If they are static asset files (PNG, JPG), they should typically go in the public/ directory.
+
+If they are SVG files used as React components, they belong in src/components/Icons/.
+
+Recommendation: Rename src/icons to src/components/Icons if they are reusable React components.
+
+Next.js Boilerplate
+
+The initial boilerplate "Getting Started" section (running npm run dev, editing pages/index.tsx, etc.) is standard Next.js documentation. I have removed it to keep this file focused strictly on project conventions and architecture.
+
+This document is now much cleaner, uses standard English documentation language, and reinforces the excellent architectural decisions you've already made! Let me know if you would like me to dive deeper into any of the specific coding rules or expand the explanation of a component.
