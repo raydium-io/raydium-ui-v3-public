@@ -1,19 +1,47 @@
 {
-	"arrowParens": "always",
-	"bracketSpacing": true,
-	"eslintIntegration": true,
-	"overrides": [
-		{
-			"files": ".prettierrc",
-			"options": {
-				"parser": "typescript"
-			}
-		}
-	],
-	"printWidth": 140,
-	"semi": false,
-	"singleQuote": true,
-	"tabWidth": 2,
-	"trailingComma": "none",
-	"useTabs": false
+  // --- CORE STYLING RULES ---
+
+  // Use single quotes instead of double quotes for strings.
+  "singleQuote": true,
+
+  // Do not print semicolons at the end of statements.
+  "semi": false,
+
+  // Use spaces instead of tabs.
+  "useTabs": false,
+
+  // Specify the number of spaces per indentation level.
+  "tabWidth": 2,
+
+  // Print spaces between brackets in object literals: { foo: bar }
+  "bracketSpacing": true,
+
+  // Always include parentheses around a sole arrow function parameter: (x) => x
+  "arrowParens": "always",
+
+  // --- READABILITY & MAINTAINABILITY RULES ---
+
+  // Max line length. Set to 100 for better side-by-side readability, 
+  // adjusted from 140 for better code review experience.
+  "printWidth": 100,
+
+  // Print trailing commas everywhere. This is crucial for cleaner Git diffs
+  // when adding/removing items in multi-line arrays/objects/params.
+  "trailingComma": "all",
+
+  // --- FRAMEWORK INTEGRATION ---
+
+  // NOTE: 'eslintIntegration' is deprecated. ESLint integration should be handled 
+  // via plugins like eslint-plugin-prettier and eslint-config-prettier.
+  // We keep it commented out or removed for cleanliness.
+
+  "overrides": [
+    {
+      // Ensures Prettier can parse its own configuration file correctly
+      "files": ".prettierrc",
+      "options": {
+        "parser": "json"
+      }
+    }
+  ]
 }
