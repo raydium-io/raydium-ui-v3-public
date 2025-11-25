@@ -1,18 +1,26 @@
-// This file configures the initialization of Sentry for edge features (middleware, edge routes, and so on).
-// The config you add here will be used whenever one of the edge features is loaded.
-// Note that this config is unrelated to the Vercel Edge Runtime and is also required when running locally.
-// https://docs.sentry.io/platforms/javascript/guides/nextjs/
+// Sentry initialization configuration for Next.js Edge features (Middleware, Edge API Routes).
+// This configuration runs in Vercel's Edge Runtime environment.
 
-import * as Sentry from '@sentry/nextjs'
-import { beforeSend, beforeSendSpan } from './sentryUtils'
+import * as Sentry from '@sentry/nextjs';
+import { beforeSend, beforeSendSpan } from './sentryUtils';
+
 Sentry.init({
+  // WARNING: Ensure this DSN is NOT exposed publicly if it's not meant for the client side.
+  // Use a non-public environment variable if configuration is strictly for Edge/Server.
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-  // Adjust this value in production, or use tracesSampler for greater control
-  tracesSampleRate: 1,
+  // Determines the percentage of transactions to send to Sentry for performance monitoring.
+  // Set to 1.0 (100%) for development/testing, but should be reduced significantly (e.g., 0.1 or 0.01)
+  // in high-traffic production environments to manage costs and data volume.
+  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
+  // Setting this to true prints useful information to the console during setup.
+  // Should be false in production.
   debug: false,
+  
+  // Custom hooks to modify event data before it is sent to Sentry.
   beforeSend,
-  beforeSendSpan
-})
+  
+  // Custom hooks to modify performance span data before it is sent to Sentry.
+  beforeSendSpan,
+});
