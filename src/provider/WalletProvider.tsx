@@ -23,7 +23,7 @@ import {
   BitgetWalletAdapter
 } from '@solana/wallet-adapter-wallets'
 import { useAppStore, defaultNetWork, defaultEndpoint } from '../store/useAppStore'
-import { registerMoonGateWallet } from '@moongate/moongate-adapter'
+import { createMoonGateAdapters } from '@moongate/sdk/adapters'
 import { TipLinkWalletAdapter } from '@tiplink/wallet-adapter'
 import { WalletConnectWalletAdapter } from '@walletconnect/solana-adapter'
 
@@ -41,29 +41,9 @@ const App: FC<PropsWithChildren<any>> = ({ children }) => {
   // const [endpoint] = useState<string>(defaultEndpoint)
   const [endpoint, setEndpoint] = useState<string>(rpcNodeUrl || defaultEndpoint)
 
-  registerMoonGateWallet({
-    authMode: 'Ethereum',
-    position: 'top-right'
-    // logoDataUri: 'OPTIONAL ADD IN-WALLET LOGO URL HERE',
-    // buttonLogoUri: 'ADD OPTIONAL LOGO FOR WIDGET BUTTON HERE'
-  })
-  registerMoonGateWallet({
-    authMode: 'Google',
-    position: 'top-right'
-    // logoDataUri: 'OPTIONAL ADD IN-WALLET LOGO URL HERE',
-    // buttonLogoUri: 'ADD OPTIONAL LOGO FOR WIDGET BUTTON HERE'
-  })
-  // registerMoonGateWallet({
-  //   authMode: 'Twitter',
-  //   position: 'top-right'
-  //   // logoDataUri: 'OPTIONAL ADD IN-WALLET LOGO URL HERE',
-  //   // buttonLogoUri: 'ADD OPTIONAL LOGO FOR WIDGET BUTTON HERE'
-  // })
-  registerMoonGateWallet({
-    authMode: 'Apple',
-    position: 'top-right'
-    // logoDataUri: 'OPTIONAL ADD IN-WALLET LOGO URL HERE',
-    // buttonLogoUri: 'ADD OPTIONAL LOGO FOR WIDGET BUTTON HERE'
+  const moonGateAdapters = createMoonGateAdapters({
+  apiKey: process.env.NEXT_PUBLIC_MOONGATE_API_KEY || 'mg_pk_67e41eae679eb889b4adc3ea0123c43d',
+  position: 'top-right',
   })
 
   const _walletConnect = useMemo(() => {
@@ -93,6 +73,7 @@ const App: FC<PropsWithChildren<any>> = ({ children }) => {
     () => [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
+      ...moonGateAdapters,
       new SlopeWalletAdapter({ endpoint }),
       new TorusWalletAdapter(),
       new LedgerWalletAdapter(),
