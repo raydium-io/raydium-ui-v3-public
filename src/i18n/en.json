@@ -81,7 +81,9 @@
     "token_2022_assets_desc": "This token uses the Token2022 Program, which provides a set of token extensions to be enabled by the token creator.",
     "trade_with_caution": "Please trade with caution",
     "transfer_fee": "Transfer Fee",
-    "max_transfer_fee": "Max Transfer Fee"
+    "max_transfer_fee": "Max Transfer Fee",
+    "transfer_hook": "Transfer Hook",
+    "transfer_hook_desc": "Every transfer of this token calls a hook program chosen by the token creator. Raydium pools only accept hook programs that are immutable and enshrined by Raydium."
   },
   "button": {
     "deposit": "Deposit",
@@ -627,7 +629,9 @@
     "swap_slippage_error_desc": "Slippage has exceeded user settings.\nTry again or adjust your slippage tolerance.",
     "initial_liquidity_low": "Initial liquidity is too low, try increasing the amount.",
     "amm_not_support_2022": "Amm V4 pool does not support token 2022",
-    "farm_not_support_2022": "Farm does not support token 2022"
+    "farm_not_support_2022": "Farm does not support token 2022",
+    "hook_program_not_enshrined": "{{side}} token has a transfer hook whose program is not enshrined for this pool type",
+    "checking_transfer_hook": "Checking transfer hook support"
   },
   "input": {
     "max_button": "Max",

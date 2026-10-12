@@ -26,7 +26,7 @@ import { Select } from '@/components/Select'
 import HorizontalSwitchSmallIcon from '@/icons/misc/HorizontalSwitchSmallIcon'
 import AddLiquidityPlus from '@/icons/misc/AddLiquidityPlus'
 import SubtractIcon from '@/icons/misc/SubtractIcon'
-import { useLiquidityStore, useTokenStore } from '@/store'
+import { useAppStore, useLiquidityStore, useTokenStore } from '@/store'
 import { colors } from '@/theme/cssVariables'
 import { wSolToSolString, wsolToSolToken } from '@/utils/token'
 import { TxErrorModal } from '@/components/Modal/TxErrorModal'
@@ -35,6 +35,7 @@ import { percentFormatter } from '@/utils/numberish/formatter'
 import useFetchPoolByMint from '@/hooks/pool/useFetchPoolByMint'
 import CreateSuccessModal from './CreateSuccessModal'
 import useInitPoolSchema from '../hooks/useInitPoolSchema'
+import useTransferHookSupport from '@/hooks/token/useTransferHookSupport'
 import useBirdeyeTokenPrice from '@/hooks/token/useBirdeyeTokenPrice'
 import { useCreateMarketStore } from '@/store'
 
@@ -129,7 +130,17 @@ export default function Initialize({ isAmmV4 }: { isAmmV4: boolean }) {
           .toDecimalPlaces(baseToken?.decimals ?? 6)
           .toString()
 
-  const error = useInitPoolSchema({ baseToken, quoteToken, tokenAmount, startTime: startDate, feeConfig: currentConfig, isAmmV4 })
+  const cpmmProgramId = useAppStore((s) => s.programIdConfig.CREATE_CPMM_POOL_PROGRAM)
+  const hookSupport = useTransferHookSupport({ poolProgramId: isAmmV4 ? undefined : cpmmProgramId, tokens: [baseToken, quoteToken] })
+  const error = useInitPoolSchema({
+    baseToken,
+    quoteToken,
+    tokenAmount,
+    startTime: startDate,
+    feeConfig: currentConfig,
+    isAmmV4,
+    hookSupport
+  })
 
   useEffect(
     () => () => {

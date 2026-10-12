@@ -8,6 +8,7 @@ import { useTokenAccountStore } from '@/store/useTokenAccountStore'
 import { TFunction } from 'i18next'
 import BN from 'bn.js'
 import { TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
+import { HookSupportMap } from '@/hooks/token/useTransferHookSupport'
 
 const numberTransform = yup.number().transform((value) => (isNaN(value) ? 0 : value))
 const numberSchema = (errMsg: string) => numberTransform.moreThan(0, errMsg).required(errMsg)
@@ -19,11 +20,12 @@ interface Props {
   baseToken?: ApiV3Token
   feeConfig?: ApiCpmmConfigInfo
   isAmmV4?: boolean
+  hookSupport?: HookSupportMap
 }
 
 // new BN(baseAmount).mul(new BN(quoteAmount)).gt(new BN(1).mul(new BN(10 ** baseToken.decimals)).pow(new BN(2)))
 
-export default function useInitPoolSchema({ startTime, baseToken, quoteToken, tokenAmount, feeConfig, isAmmV4 }: Props) {
+export default function useInitPoolSchema({ startTime, baseToken, quoteToken, tokenAmount, feeConfig, isAmmV4, hookSupport }: Props) {
   // prepare for i18n usage
   const { t } = useTranslation()
 
@@ -33,8 +35,29 @@ export default function useInitPoolSchema({ startTime, baseToken, quoteToken, to
   const baseBalance = getTokenBalanceUiAmount({ mint: wSolToSol(baseToken?.address) || '', decimals: baseToken?.decimals }).text
   const quoteBalance = getTokenBalanceUiAmount({ mint: wSolToSol(quoteToken?.address) || '', decimals: quoteToken?.decimals }).text
 
+  const hookTest = (side: 'base' | 'quote', tokenKey: 'baseToken' | 'quoteToken') =>
+    yup
+      .mixed()
+      .test('is-hook-checking', t('error.checking_transfer_hook') ?? 'Checking transfer hook support', function () {
+        const token = this.parent[tokenKey] as ApiV3Token | undefined
+        const support = token ? hookSupport?.[token.address] : undefined
+        return !support || !support.loading
+      })
+      .test(
+        'is-hook-enshrined',
+        t('error.hook_program_not_enshrined', { side }) ?? `${side} token has a transfer hook whose program is not enshrined`,
+        function () {
+          if (isAmmV4) return true
+          const token = this.parent[tokenKey] as ApiV3Token | undefined
+          const support = token ? hookSupport?.[token.address] : undefined
+          return !support || !support.hooked || support.enshrined !== false
+        }
+      )
+
   const schema = (t: TFunction<'translation', undefined, 'translation'>) =>
     yup.object().shape({
+      baseHook: hookTest('base', 'baseToken'),
+      quoteHook: hookTest('quote', 'quoteToken'),
       ...(isAmmV4 ? {} : { feeConfig: yup.mixed().required(t('common.select') + t('field.fee_tier') ?? '') }),
       ...(isAmmV4
         ? {
@@ -109,7 +132,7 @@ export default function useInitPoolSchema({ startTime, baseToken, quoteToken, to
     } catch (e: any) {
       setError(e.message)
     }
-  }, [baseToken, quoteToken, tokenAmount, startTime, baseBalance, quoteBalance, feeConfig])
+  }, [baseToken, quoteToken, tokenAmount, startTime, baseBalance, quoteBalance, feeConfig, hookSupport])
 
   return error
 }

@@ -41,6 +41,7 @@ import { Trans } from 'react-i18next'
 import { formatCurrency, formatToRawLocaleStr } from '@/utils/numberish/formatter'
 import ToPublicKey, { isValidPublicKey } from '@/utils/publicKey'
 import useTokenInfo from '@/hooks/token/useTokenInfo'
+import { TransferHookInfo, getTransferHookInfo } from '@/utils/transferHook'
 import { debounce } from '@/utils/functionMethods'
 import QuestionCircleIcon from '@/icons/misc/QuestionCircleIcon'
 import Tooltip from '@/components/Tooltip'
@@ -113,6 +114,10 @@ export function SwapPanel({
   const [inputFeeConfig, outputFeeConfig] = [
     tokenInput?.extensions.feeConfig || inputInfo?.extensions.feeConfig,
     tokenOutput?.extensions.feeConfig || outputInfo?.extensions.feeConfig
+  ]
+  const [inputHook, outputHook] = [
+    getTransferHookInfo(tokenInput) || getTransferHookInfo(inputInfo),
+    getTransferHookInfo(tokenOutput) || getTransferHookInfo(outputInfo)
   ]
 
   const feeKeys: { input: 'newerTransferFee' | 'olderTransferFee'; output: 'newerTransferFee' | 'olderTransferFee' } = useMemo(() => {
@@ -426,12 +431,12 @@ export function SwapPanel({
           />
         </Flex>
       )}
-      {inputFeeConfig || outputFeeConfig ? (
-        <Flex mt="-1" mb="4">
-          {inputFeeConfig && tokenInput ? (
+      {inputFeeConfig || outputFeeConfig || inputHook || outputHook ? (
+        <Flex mt="-1" mb="4" gap="2">
+          {(inputFeeConfig || inputHook) && tokenInput ? (
             <Tooltip
               contentBoxProps={{ sx: { width: 'fit-content' } }}
-              label={<TransferFeeTip feeConfig={inputFeeConfig} token={tokenInput!} />}
+              label={<TransferFeeTip feeConfig={inputFeeConfig} hook={inputHook} token={tokenInput!} />}
             >
               <Box
                 fontSize="xs"
@@ -442,15 +447,18 @@ export function SwapPanel({
                 px="1"
                 borderRadius="4px"
               >
-                {getMintSymbol({ mint: tokenInput })} ({inputFeeConfig[feeKeys.input].transferFeeBasisPoints / 100}% {t('common.tax')})
+                {getMintSymbol({ mint: tokenInput })} (
+                {inputFeeConfig ? `${inputFeeConfig[feeKeys.input].transferFeeBasisPoints / 100}% ${t('common.tax')}` : ''}
+                {inputFeeConfig && inputHook ? ', ' : ''}
+                {inputHook ? t('common.transfer_hook') : ''})
               </Box>
             </Tooltip>
           ) : null}
 
-          {outputFeeConfig && tokenOutput ? (
+          {(outputFeeConfig || outputHook) && tokenOutput ? (
             <Tooltip
               contentBoxProps={{ sx: { width: 'fit-content' } }}
-              label={<TransferFeeTip feeConfig={outputFeeConfig} token={tokenOutput!} />}
+              label={<TransferFeeTip feeConfig={outputFeeConfig} hook={outputHook} token={tokenOutput!} />}
             >
               <Box
                 fontSize="xs"
@@ -461,7 +469,10 @@ export function SwapPanel({
                 px="1"
                 borderRadius="4px"
               >
-                {getMintSymbol({ mint: tokenOutput })} ({outputFeeConfig[feeKeys.output].transferFeeBasisPoints / 100}% {t('common.tax')})
+                {getMintSymbol({ mint: tokenOutput })} (
+                {outputFeeConfig ? `${outputFeeConfig[feeKeys.output].transferFeeBasisPoints / 100}% ${t('common.tax')}` : ''}
+                {outputFeeConfig && outputHook ? ', ' : ''}
+                {outputHook ? t('common.transfer_hook') : ''})
               </Box>
             </Tooltip>
           ) : null}
@@ -529,12 +540,14 @@ function Progress() {
   return <CircularProgress isIndeterminate size="16px" />
 }
 
-function TransferFeeTip({ feeConfig, token }: { feeConfig: TransferFeeDataBaseType; token: TokenInfo }) {
+function TransferFeeTip({ feeConfig, hook, token }: { feeConfig?: TransferFeeDataBaseType; hook?: TransferHookInfo; token: TokenInfo }) {
   const epochInfo = useAppStore((s) => s.epochInfo)
 
   const feeKey = useMemo(() => {
     try {
-      return !epochInfo || Number(epochInfo.epoch) >= Number(feeConfig.newerTransferFee.epoch) ? 'newerTransferFee' : 'olderTransferFee'
+      return !epochInfo || !feeConfig || Number(epochInfo.epoch) >= Number(feeConfig.newerTransferFee.epoch)
+        ? 'newerTransferFee'
+        : 'olderTransferFee'
     } catch {
       return 'newerTransferFee'
     }
@@ -562,38 +575,57 @@ function TransferFeeTip({ feeConfig, token }: { feeConfig: TransferFeeDataBaseTy
         pt={1.5}
         pb={2}
       >
-        <Flex flexDir={['column', 'row']} justifyContent="space-between" gap={[0, 2]}>
-          <Flex alignItems="center" gap="0.5">
-            <Text whiteSpace="nowrap" wordBreak={'keep-all'}>
-              {t('common.transfer_fee')}
+        {feeConfig ? (
+          <>
+            <Flex flexDir={['column', 'row']} justifyContent="space-between" gap={[0, 2]}>
+              <Flex alignItems="center" gap="0.5">
+                <Text whiteSpace="nowrap" wordBreak={'keep-all'}>
+                  {t('common.transfer_fee')}
+                </Text>
+                <ChakraTip label="A transfer fee derived from the amount of the token being transferred.">
+                  <QuestionCircleIcon />
+                </ChakraTip>
+              </Flex>
+              <Text color={colors.text02}>{feeConfig[feeKey].transferFeeBasisPoints / 100}%</Text>
+            </Flex>
+            <Flex flexDir={['column', 'row']} justifyContent="space-between" gap={[0, 2]}>
+              <Flex alignItems="center" gap="0.5">
+                <Text whiteSpace="nowrap" wordBreak={'keep-all'}>
+                  {t('common.max_transfer_fee')}
+                </Text>
+                <ChakraTip label="Maximum amount for the transfer fee, set by the authority mint.">
+                  <QuestionCircleIcon />
+                </ChakraTip>
+              </Flex>
+              <Text color={colors.text02}>
+                {formatCurrency(
+                  new Decimal(feeConfig[feeKey].maximumFee)
+                    .div(10 ** token.decimals)
+                    .toDecimalPlaces(token.decimals)
+                    .toString(),
+                  { decimalPlaces: token.decimals }
+                )}
+                &nbsp;
+                {token.symbol}
+              </Text>
+            </Flex>
+          </>
+        ) : null}
+        {hook ? (
+          <Flex flexDir={['column', 'row']} justifyContent="space-between" gap={[0, 2]}>
+            <Flex alignItems="center" gap="0.5">
+              <Text whiteSpace="nowrap" wordBreak={'keep-all'}>
+                {t('common.transfer_hook')}
+              </Text>
+              <ChakraTip label={t('common.transfer_hook_desc')}>
+                <QuestionCircleIcon />
+              </ChakraTip>
+            </Flex>
+            <Text color={colors.text02} fontFamily="mono" fontSize="xs">
+              {hook.programId.slice(0, 6)}...{hook.programId.slice(-6)}
             </Text>
-            <ChakraTip label="A transfer fee derived from the amount of the token being transferred.">
-              <QuestionCircleIcon />
-            </ChakraTip>
           </Flex>
-          <Text color={colors.text02}>{feeConfig[feeKey].transferFeeBasisPoints / 100}%</Text>
-        </Flex>
-        <Flex flexDir={['column', 'row']} justifyContent="space-between" gap={[0, 2]}>
-          <Flex alignItems="center" gap="0.5">
-            <Text whiteSpace="nowrap" wordBreak={'keep-all'}>
-              {t('common.max_transfer_fee')}
-            </Text>
-            <ChakraTip label="Maximum amount for the transfer fee, set by the authority mint.">
-              <QuestionCircleIcon />
-            </ChakraTip>
-          </Flex>
-          <Text color={colors.text02}>
-            {formatCurrency(
-              new Decimal(feeConfig[feeKey].maximumFee)
-                .div(10 ** token.decimals)
-                .toDecimalPlaces(token.decimals)
-                .toString(),
-              { decimalPlaces: token.decimals }
-            )}
-            &nbsp;
-            {token.symbol}
-          </Text>
-        </Flex>
+        ) : null}
       </Box>
     </>
   )
