@@ -9,7 +9,8 @@ import {
   Mint,
   TransferFeeConfigLayout,
   ExtensionType,
-  MintLayout
+  MintLayout,
+  getTransferHook
 } from '@solana/spl-token'
 
 import { useAppStore } from '@/store/useAppStore'
@@ -79,6 +80,9 @@ export const getOnlineTokenInfo = async ({
         }
         const config = getTransferFeeConfig(onlineData)
         if (getTransferFeeConfig(onlineData)) tags.push('hasTransferFee')
+        const hook = programId.equals(TOKEN_2022_PROGRAM_ID) ? getTransferHook(onlineData) : null
+        const transferHook = hook && !hook.programId.equals(PublicKey.default) ? hook : null
+        if (transferHook) tags.push('hasTransferHook')
         if (onlineData) {
           const res = {
             chainId: 101,
@@ -106,6 +110,14 @@ export const getOnlineTokenInfo = async ({
                         maximumFee: config.newerTransferFee.maximumFee.toString(),
                         transferFeeBasisPoints: config.newerTransferFee.transferFeeBasisPoints.valueOf()
                       }
+                    }
+                  }
+                : {}),
+              ...(transferHook
+                ? {
+                    transferHook: {
+                      programId: transferHook.programId.toBase58(),
+                      authority: transferHook.authority.toBase58()
                     }
                   }
                 : {})

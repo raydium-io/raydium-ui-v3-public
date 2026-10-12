@@ -10,7 +10,8 @@ import { colors } from '@/theme/cssVariables/colors'
 import ConnectedButton from '@/components/ConnectedButton'
 import { Select } from '@/components/Select'
 import useTokenPrice from '@/hooks/token/useTokenPrice'
-import { useTokenStore } from '@/store'
+import { useAppStore, useTokenStore } from '@/store'
+import useTransferHookSupport, { findUnsupportedHook, isHookCheckLoading } from '@/hooks/token/useTransferHookSupport'
 import { Box, Flex, HStack, SystemStyleObject, Tag, Text, useDisclosure } from '@chakra-ui/react'
 import { ApiClmmConfigInfo, ApiV3Token, ClmmConfigInfo, PoolFetchType, TokenInfo, solToWSol } from '@raydium-io/raydium-sdk-v2'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -59,6 +60,10 @@ export default function SelectPoolTokenAndFee({ completed, initState, show, isLo
     timeout: 100
   })
   const whiteListMap = useTokenStore((s) => s.whiteListMap)
+  const clmmProgramId = useAppStore((s) => s.programIdConfig.CLMM_PROGRAM_ID)
+  const hookSupport = useTransferHookSupport({ poolProgramId: clmmProgramId, tokens: [token1, token2] })
+  const hookChecking = isHookCheckLoading(hookSupport, [token1, token2])
+  const unsupportedHookToken = findUnsupportedHook(hookSupport, [token1, token2])
 
   const { data, isLoading: isExistingLoading } = useFetchPoolByMint({
     shouldFetch: !!token1 && !!token2,
@@ -132,6 +137,11 @@ export default function SelectPoolTokenAndFee({ completed, initState, show, isLo
   }
   let error = tokens.token1 ? (tokens.token2 ? undefined : 'common.quote_token') : 'common.base_token'
   error = error || (currentConfig ? undefined : 'field.fee_tier')
+  const hookError = unsupportedHookToken
+    ? t('error.hook_program_not_enshrined', {
+        side: unsupportedHookToken.address === token1?.address ? t('common.base_token') : t('common.quote_token')
+      })
+    : undefined
 
   if (!show) return null
   if (completed) {
@@ -262,8 +272,13 @@ export default function SelectPoolTokenAndFee({ completed, initState, show, isLo
           }}
         />
       </Flex>
-      <ConnectedButton mt="8" isDisabled={!!error || !currentConfig} isLoading={isLoading || isExistingLoading} onClick={handleConfirm}>
-        {error ? `${t('common.select')} ${t(error)}` : t('button.continue')}
+      <ConnectedButton
+        mt="8"
+        isDisabled={!!error || !!hookError || !currentConfig}
+        isLoading={isLoading || isExistingLoading || hookChecking}
+        onClick={handleConfirm}
+      >
+        {error ? `${t('common.select')} ${t(error)}` : hookError || t('button.continue')}
       </ConnectedButton>
     </PanelCard>
   )
